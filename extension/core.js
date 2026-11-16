@@ -18,7 +18,7 @@
     future: /(?:下次|回头|有空|改天|之后|准备|打算).{0,12}(?:试试|试一|试下|用上|跑一|体验|做一)/,
     reframe: /背后(?:其实|本质)|这(?:也)?意味着|真正变的是|(?:门槛|成本|效率|价值).{0,16}(?:变成|降低|打下|从|提升)|(?:本质|核心|关键)(?:其实)?(?:是|在于)/,
     opposition: /不同意|不认同|不成立|说错|有误|反例|并不意味着|不能证明|逻辑跳跃|并不是|不等于|根本不|not true|incorrect|counterexample/i,
-    concrete: /TypeError|ReferenceError|报错|错误码|复现|复测|堆栈|issue\s*#?\d|\b(?:\d+(?:\.\d+)?)\s*(?:fps|ms|秒\/帧)\b|https?:\/\/\S+/i
+    concrete: /TypeError|ReferenceError|报错|错误码|复现|堆栈|issue\s*#?\d|https?:\/\/\S+/i
   };
   function normalize(value) {
     return String(value || '').normalize('NFKC').toLowerCase().replace(/https?:\/\/\S+/g, ' ').replace(/@[\w_]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -57,6 +57,27 @@
     let total = 0, shared = 0;
     for (const [token, weight] of b) { total += weight; if (a.has(token)) shared += weight; }
     return total ? shared / total : 0;
+  }
+  function hasNewMeasurement(parent, text) {
+    const metric = /\d+(?:\.\d+)?\s*(?:fps|ms|毫秒|秒\/帧|帧\/秒|秒|分钟|小时|s|[kmgt]i?b(?:\/s)?|[kmg]bps|%|美元|港元|港币|元|块|usd|hkd)(?![a-z])/gi;
+    const value = raw=>normalize(raw).replace(/\s+/g, '');
+    const known = new Set([...normalize(parent).matchAll(metric)].map(m=>value(m[0])));
+    const observed = /实测|复测|测得|测了|测试(?:了|结果|下来)|跑了|跑过|跑下来|试了|试过|用了|花了|占用|耗时|用时|延迟(?:是|为)|平均(?:是|为)|峰值(?:是|为)|\b(?:measured|tested|observed|took|used|cost)\b/i;
+    const prospective = /如果|假如|假设|要是|会不会|能不能|能否|是否|有没有|想知道|希望|期待|预计|估计|可能|也许|或许|目标|建议|不妨|下次|未来|以后|没(?:有)?(?:做过|进行过)?(?:实测|测试|测过)|尚未(?:测试|实测)|未实测|未测|\b(?:would|could|might|expect|target)\b/i;
+    const attributed = /原帖|原文|文中|文章|作者(?:说|给)|楼主|标称|宣称|官方(?:说|给)|\b(?:post says|author says|advertised)\b/i;
+    for (const sentence of String(text).normalize('NFKC').split(/(?<=[。！？!?\n；;])/).map(normalize)) {
+      for (const match of sentence.matchAll(metric)) {
+        if (known.has(value(match[0]))) continue;
+        let prefix=sentence.slice(0,match.index+match[0].length);
+        const ownContrast=prefix.match(/(?:但|不过|可是)\s*我/);
+        if(ownContrast)prefix=prefix.slice(ownContrast.index);
+        const suffix=sentence.slice(match.index+match[0].length).split(/[，,：:]/)[0];
+        if(/[?？]|(?:吗|么)\s*[。!！]?$/.test(suffix))continue;
+        // Evidence must precede this measurement; a later wish cannot erase an earlier result.
+        if (observed.test(prefix) && !prospective.test(prefix) && !attributed.test(prefix)) return true;
+      }
+    }
+    return false;
   }
   function features(text) {
     const f = {};
@@ -102,7 +123,7 @@
     const strongest = spans.filter(x=>x.value.length>=8).map(x=>x.ratio).sort((a,b)=>b-a).slice(0,2);
     // Added chatter must not dilute two independently copied points into a clean verdict.
     const ratio = strongest.length >= 2 ? Math.max(rawRatio, rawRatio * 0.4 + (strongest[0]+strongest[1]) * 0.3) : rawRatio;
-    const newMeasurement = [...text.matchAll(/\d+(?:\.\d+)?\s*(?:fps|ms|毫秒|秒\/帧|帧\/秒)/gi)].some(m=>!normalize(parent).includes(normalize(m[0])));
+    const newMeasurement = hasNewMeasurement(parent,text);
     const hasNewConcrete = newMeasurement || spans.some(x => x.ratio < 0.35 && PATTERNS.concrete.test(x.value));
     const substantive = (f.opposition && ratio < 0.8) || hasNewConcrete;
     const newReference = spans.some(x=>x.ratio<0.25 && /《[^》]+》|\b(?:19|20)\d{2}\s*年|\.[a-z][a-z0-9_-]{2,}/i.test(x.value));

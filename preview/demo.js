@@ -102,6 +102,16 @@ async function run(){
     await until(()=>settings().textContent.includes('当前已检查 5 条')&&samples.feedbackCase.replies.every((r,i)=>folded(String(14100+i))===(r.expected==='fold')));
     for(let i=0;i<samples.feedbackCase.replies.length;i++){const ui=bar(String(14100+i));if(ui?.querySelector('details,.score-summary')||(samples.feedbackCase.replies[i].expected==='keep'&&ui))throw Error('仍显示评分或正常评论附加界面');}
   });
+  await test('新增实测时间、内存和费用的评论保留',async()=>{
+    history.pushState({},'', '/demo/status/15000');timeline.replaceChildren(article('15000','demo',samples.parent),article('15100','template',samples.replies[4][1]),article('15101','measured_time',samples.replies[4][1]+' 我实测首次加载用了 18 秒，内存占用是 1.2GB。'),article('15102','measured_cost',samples.replies[4][1]+' 我拿自己的项目跑了一遍，每次调用花了 0.18 元。'));
+    await until(()=>folded('15100'));
+    for(const id of ['15101','15102'])if(folded(id)||bar(id))throw Error('新增实测结果被折叠或插入控件');
+  });
+  await test('假设能达到的帧率不能冒充实测结果',async()=>{
+    timeline.append(article('15103','hypothetical',samples.replies[4][1]+' 如果以后能跑到 60fps，会不会让这种方案成为主流？'),article('15104','measured_fps',samples.replies[4][1]+' 我实测只有 27fps，怎么优化？'));
+    await until(()=>folded('15103'));
+    if(folded('15104')||bar('15104'))throw Error('实际帧率被当成设想过滤');
+  });
   const summary={passed:results.filter(r=>r.pass).length,total:results.length,results};window.XRF_TEST_RESULTS=summary;status.textContent=`交互检查 ${summary.passed}/${summary.total} 通过。`;runButton.disabled=false;
   const pre=document.createElement('pre');pre.id='test-json';pre.hidden=true;pre.textContent=JSON.stringify(summary);output.append(pre);
 }

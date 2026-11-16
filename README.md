@@ -12,7 +12,7 @@
 
 ## 30 秒安装
 
-1. 在 [Releases](https://github.com/smyll/jingping/releases) 下载 **jingping-v0.1.1-edge-chrome.zip** 并解压。
+1. 在 [Releases](https://github.com/smyll/jingping/releases) 下载 **jingping-v0.1.2-edge-chrome.zip** 并解压。
 2. Edge 打开 `edge://extensions`，Chrome 打开 `chrome://extensions`，开启「开发者模式」。
 3. 点击「加载解压缩的扩展」，选择解压后里面的 **extension** 文件夹。
 4. 刷新 X，打开一个帖子的评论区。
@@ -33,6 +33,8 @@
 - 在你浏览过的不同帖子下，反复出现相似接话结构的账号；账号历史只辅助本条判断。
 
 短问题、普通短附和、笑话、具体新例子、报错与实测数据优先保留。带图片、视频或尚未展开全文的评论也先保留。主帖、主帖作者的回复、自己的回复不折叠。
+
+实测数据包括新增的耗时、内存、费用等结果；假设、性能目标或转述原帖数字不会仅因带单位就获得保留优先级。
 
 **它是个人过滤器，不是 AI 作者鉴定器。** 不因蓝 V、昵称里带 AI 或发帖频繁就隐藏评论。当前重点优化中文，英文效果尚未专门评估。
 

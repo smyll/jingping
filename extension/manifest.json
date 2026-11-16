@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "净评 · X 评论折叠",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "在本地识别复述与模板式接话，自动折叠 X 评论。无需账号、API Key 或 Token。",
   "permissions": [
     "storage",
