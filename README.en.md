@@ -1,8 +1,10 @@
-# Jingping · A quieter X reply section
+# Jingtui · A quieter X reply section
 
-**Fold replies that mostly repeat the post and finish with a generic question.**
+**Fold empty praise, repeated conclusions and template replies.**
 
 A free, local browser extension. No tokens, API keys or server. Ordinary replies stay untouched. Filtered replies become a slim bar with one **Expand** button (currently labeled in Chinese).
+
+Previously named Jingping. Version 0.2.0 adopts Jingtui while retaining the existing installation and settings.
 
 [Download](https://github.com/smyll/jingping/releases) · [中文](README.md) · [Report a filtering issue](https://github.com/smyll/jingping/issues/new/choose)
 
@@ -10,7 +12,7 @@ A free, local browser extension. No tokens, API keys or server. Ordinary replies
 
 ## Install
 
-1. Download **jingping-v0.1.3-edge-chrome.zip** from Releases and extract it.
+1. Download **jingtui-v0.2.0-edge-chrome.zip** from Releases and extract it.
 2. Open `edge://extensions` or `chrome://extensions` and enable Developer mode.
 3. Click **Load unpacked** and select the extracted **extension** folder.
 4. Refresh X and open a post's replies. Use the extension popup to change sensitivity or pause filtering.
@@ -23,7 +25,7 @@ The extension combines phrase overlap, a bundled Chinese embedding model and rep
 
 Reported measurements can include elapsed time, memory and cost. Hypothetical targets and numbers quoted from the source do not receive measurement protection just because they include a unit.
 
-Multi-point restatements followed by a generic intention to save or study the post can also fold. A short bookmark acknowledgment on its own stays visible.
+Multi-point restatements followed by a generic intention to save or study the post can also fold. Empty-reply cleanup is enabled by default: it can fold standalone thanks, bookmarks, generic praise and abstract advice. Turn off **折叠空泛附和** in the popup to retain those short reactions while keeping the template filter active.
 
 This is a personal filter, **not an AI-authorship detector**. It does not score people from their names, blue checks or AI branding. Current tuning targets Chinese replies; English quality has not been evaluated separately.
 
@@ -35,6 +37,6 @@ The repository includes the runnable extension and pinned model. Run `npm test`,
 
 To rebuild the runtime, use Node.js 22+, `npm ci --ignore-scripts`, then `node tools/build-model.cjs`. Run `npm run package` to produce a release folder.
 
-Reports of missed or unwanted folds are welcome. Include the public source, expected behavior and your settings. If Jingping is useful, a Star helps others find it.
+Reports of missed or unwanted folds are welcome. Include the public source, expected behavior and your settings. If Jingtui is useful, a Star helps others find it.
 
 MIT license. Third-party model/runtime notices are bundled in `extension/licenses/`. See [validation notes](docs/validation.md) for the current test boundaries.

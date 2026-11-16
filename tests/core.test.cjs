@@ -104,8 +104,8 @@ test('ordinary history dilutes the account score, and frequency alone adds nothi
   assert.equal(frequent.regular,true);assert.equal(frequent.score,0);
   assert.equal(core.historySignals(rows.map(r=>({...r,thread:''})),'current').score,null);
 });
-test('a high content score still requires the comment-specific folding condition',()=>{
-  const r=core.analyze({text:'哈哈，模型、纹理和音效均由代码生成，Three.js负责渲染。',parent,semantic:{similarity:.99}});
+test('with cleanup disabled, a high content score still requires the template condition',()=>{
+  const r=core.analyze({text:'哈哈，模型、纹理和音效均由代码生成，Three.js负责渲染。',parent,semantic:{similarity:.99}},{...core.DEFAULTS,lowInformation:false});
   assert.ok(r.score>=r.threshold);assert.equal(r.eligible,false);assert.equal(r.fold,false);
 });
 test('reused points plus prospective advice can fold without a question',()=>{

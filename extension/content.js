@@ -60,7 +60,7 @@
   launcherHost.style.cssText = 'position:fixed;right:16px;bottom:24px;z-index:2147483000;width:auto;max-width:calc(100vw - 32px)';
   const launcherRoot = shadow(launcherHost), panel = node('section', '', 'panel');
   panel.hidden = true;
-  const title = node('h2', '净评'), status = node('p', '', 'note muted'), errors = node('p', '', 'note error');
+  const title = node('h2', '净推'), status = node('p', '', 'note muted'), errors = node('p', '', 'note error');
   errors.setAttribute('role', 'status');
   function select(label, options, field) {
     const wrap = node('label', label), input = node('select');
@@ -74,10 +74,12 @@
   const sensitivityInput = select('过滤力度', [['gentle','温和'],['balanced','标准'],['strict','较强']], 'sensitivity');
   const semanticWrap=node('label','本地中文语义辅助'),semanticInput=node('input');semanticInput.type='checkbox';semanticInput.setAttribute('aria-label','本地中文语义辅助');
   semanticInput.addEventListener('change',()=>save(keys.settings,{...settings,semantic:semanticInput.checked}));semanticWrap.append(semanticInput);
-    panel.append(semanticWrap,status, node('p','重点过滤多处复述后的附和、总结、追问与试用意向，结合账号历史判断。具体新例子优先保留。模型在本机计算。','note muted'), errors);
+  const lowInfoWrap=node('label','折叠空泛附和'),lowInfoInput=node('input');lowInfoInput.type='checkbox';lowInfoInput.setAttribute('aria-label','折叠空泛附和');
+  lowInfoInput.addEventListener('change',()=>save(keys.settings,{...settings,lowInformation:lowInfoInput.checked}));lowInfoWrap.append(lowInfoInput);
+    panel.append(semanticWrap,lowInfoWrap,status, node('p','过滤模板复述和空泛附和。具体反馈、纠错和来源核实优先保留。模型在本机计算。','note muted'), errors);
   const accountList = node('div'); panel.append(accountList);
-  const toggle = button('净评', () => { panel.hidden = !panel.hidden; toggle.setAttribute('aria-expanded', String(!panel.hidden)); });
-  toggle.className = 'launcher'; toggle.setAttribute('aria-expanded','false'); toggle.setAttribute('aria-label','打开净评设置');
+  const toggle = button('净推', () => { panel.hidden = !panel.hidden; toggle.setAttribute('aria-expanded', String(!panel.hidden)); });
+  toggle.className = 'launcher'; toggle.setAttribute('aria-expanded','false'); toggle.setAttribute('aria-label','打开净推设置');
   launcherRoot.append(panel, toggle); if(demo)document.body.append(launcherHost);
   async function save(key, value) {
     try { await storage.set({ [key]:value }); applyStored({ [key]:value }); error = ''; }
@@ -91,8 +93,8 @@
     if (keys.history in data) history = data[keys.history] && typeof data[keys.history] === 'object' ? data[keys.history] : {};
   }
   function refreshPanel() {
-    modeInput.value = settings.mode; sensitivityInput.value = settings.sensitivity;semanticInput.checked=settings.semantic;
-    toggle.textContent = settings.mode === 'off' ? '净评 · 已暂停' : `净评 · 已折叠 ${foldedCount}`;
+    modeInput.value = settings.mode; sensitivityInput.value = settings.sensitivity;semanticInput.checked=settings.semantic;lowInfoInput.checked=settings.lowInformation;
+    toggle.textContent = settings.mode === 'off' ? '净推 · 已暂停' : `净推 · 已折叠 ${foldedCount}`;
     status.textContent = !routeKey ? '进入帖子详情页后过滤评论。' : !rootText ? '等待原帖正文，暂不自动折叠。' : `当前已检查 ${evaluatedCount} 条，折叠 ${foldedCount} 条。${semanticBusy?' 本地语义计算中…':semanticFailed?' 语义辅助不可用，正在使用规则。':settings.semantic?' 中文语义辅助已开启。':' 仅使用规则。'}`;
     errors.textContent = error;
     accountList.replaceChildren();

@@ -5,7 +5,7 @@
   else root.XReplyFilter = api;
 })(typeof globalThis === 'object' ? globalThis : this, function () {
   'use strict';
-  const DEFAULTS = Object.freeze({ mode: 'collapse', sensitivity: 'balanced', semantic: true });
+  const DEFAULTS = Object.freeze({ mode: 'collapse', sensitivity: 'balanced', semantic: true, lowInformation: true });
   const STOP = new Set('这个 那个 一个 这些 那些 就是 可以 不是 还是 因为 所以 但是 然后 什么 怎么 自己 已经 现在 真的 觉得 我们 你们 他们 有点 可能 不过 这种 这样 那样 没有 而且 一下 其实 里面 出来 东西 the and that this with from have has are was were for you your they their not but just it its to of in on as is at an be by or so'.split(' '));
   const PATTERNS = {
     praise: /很到位|挺有启发|有点东西|很干净|最关键|更值得|核心确实|确实是|讲得[很真]清楚|这个(?:思路|方法|比喻|角度)|最打动我|我(?:也)?觉得|哈哈|想试试|太省了|(?:great|good|fair) point|easy to (?:miss|overlook)|the (?:real|harder|useful) (?:test|question|part)|the bridge from/i,
@@ -87,6 +87,20 @@
     f.shape = [f.praise ? '接话' : '', f.anecdote ? '自述' : '', f.pivot ? '转折' : '', f.question ? '追问' : '', f.advice ? '建议' : '', f.future ? '试用意向' : '', f.reframe ? '总结' : ''].filter(Boolean).join('→');
     return f;
   }
+  function lowInformationReason(text, f, ratio) {
+    if(f.length>100 || f.question || /[?？]|出处|来源|证据|纠正|并未|不是官方|没有开源|并不是|不赞成|不建议|比如|例如|举个例子/.test(text))return '';
+    // Specific details and usable observations take priority over generic praise.
+    if(/https?:\/\/|`|\d\s*(?:px|fps|ms|[kmgt]i?b|%|秒|元)|报错|没反应|不支持|无法|失败|卡住|离线|断网|配置|参数|命令|函数|接口|字段|点击|关闭|打开|安装|改成|改为|按钮/i.test(text))return '';
+    const plain=normalize(text).replace(/[\p{P}\p{S}\s]+/gu,'');
+    const reaction=/^(?:(?:原来如此|谢谢(?:分享|整理|推荐|大佬)?|感谢(?:分享|整理|推荐|大佬)?|多谢|收藏(?:了|起来)?|已收藏|先收藏|学到了|学习了|受教了|涨知识了|支持|赞|太强了|太厉害了|厉害|好厉害|牛|牛逼|牛批|不错|很棒|太棒了|很有用|可以|先抄为敬|抄作业了|mark|thx|thanks|great|nice|哈哈|哈|慢慢看|慢慢消化|回头看)){1,6}$/i;
+    if(plain && f.length<=40 && reaction.test(plain))return '纯附和、致谢或收藏，未补充信息';
+    const praise=/省(?:了|下|不少|很多|点)?.{0,4}(?:劲|事|功夫)|高级(?:感)?|(?:太|真|很)?厉害|(?:太|很|真|够)(?:专业|详细|强|有用|不错)|有参考价值|直接抄作业|断层领先|这个(?:思路|方法).{0,4}(?:不错|挺好|真好)/;
+    const abstractAdvice=/(?:关键|真正难|更难|难点).{0,18}(?:团队|习惯|落地)|(?:配合|结合|考虑).{0,14}(?:具体内容|实际(?:情况|场景|需求)|可用性)/;
+    if((ratio>=0.22 || (ratio>0.08 && /^(?:厉害|太强了)[，,\s]*(?:没想到|原来)/.test(text))) && praise.test(text))return '围绕原帖作笼统评价，未补充具体细节';
+    if(ratio>=0.1 && abstractAdvice.test(text))return '泛化的原则或建议，未说明具体做法';
+    if(f.length>=12 && f.length<=65 && ratio>=0.88)return '短评论几乎完全重复原帖';
+    return '';
+  }
   function historySignals(history, currentId) {
     const now = Date.now(), rows = [...new Map((history || []).filter(x => x && x.id && x.id !== currentId && Number.isFinite(x.seenAt) && now >= x.seenAt && now - x.seenAt < 14 * 86400000).map(x => [x.id, x])).values()];
     const replies=rows.filter(x=>x.thread);
@@ -127,6 +141,7 @@
     const hasNewConcrete = newMeasurement || spans.some(x => x.ratio < 0.35 && PATTERNS.concrete.test(x.value));
     const substantive = (f.opposition && ratio < 0.8) || hasNewConcrete;
     const newReference = spans.some(x=>x.ratio<0.25 && /《[^》]+》|\b(?:19|20)\d{2}\s*年|\.[a-z][a-z0-9_-]{2,}/i.test(x.value));
+    const lowInformation = settings.lowInformation!==false && parent && !substantive && !newReference && !hasMedia && !truncated ? lowInformationReason(text,f,ratio) : '';
     const linkedSpans = spans.filter(x=>x.ratio>=0.3 && x.value.length>=8).length;
     const summaryReuse = ratio>=0.6 || (ratio>=0.5 && semantic?.similarity>=0.65);
     const shortJoke = f.length<70 && /哈哈|笑死|分明是|😂|🤣/.test(text);
@@ -156,6 +171,7 @@
     if (f.length < 15) score = Math.min(score, 25);
     if (hasMedia || truncated) { score = Math.min(score, 39); reasons.push(hasMedia ? '评论附有图片或视频，文字不足以判断' : '评论尚未展开，暂不自动折叠'); }
     if (!parent) score = Math.min(score, 35);
+    if(lowInformation){score=Math.max(score,75);reasons.push(lowInformation);}
     const commentScore = Math.max(0, Math.min(100, Math.round(score)));
     const threshold = settings.sensitivity === 'strict' ? 45 : settings.sensitivity === 'gentle' ? 75 : 60;
     const quantities = value=>new Set((value.match(/\d+(?:\.\d+)?\s*(?:万|亿|千|百|[KMGT]?B\b|行|笔|次|项|个|帧)/gi) || []).map(part=>normalize(part).replace(/\s+/g, '')));
@@ -166,20 +182,20 @@
     const highReuse = ratio >= 0.62 || (ratio >= 0.35 && semantic?.similarity >= 0.74) || (rawRatio >= 0.48 && borrowed.length >= 2) || detailedQuestion;
     const repetitiveQuestion = highReuse && f.question && (f.elastic || ratio>=0.7) && f.length >= 35;
     const repeatedAccount = h.repeated && f.template && (ratio >= 0.3 || h.regular || h.burst);
-    // User preference: ordinary agreement or a short joke alone must not auto-collapse.
-    const protectedContent = substantive || hasMedia || truncated || !parent || f.length < 15;
-    const eligible = !protectedContent && (repeatedAccount || (!newReference && (repetitiveQuestion || repetitiveAdvice || repetitiveSummary)));
+    const protectedContent = substantive || hasMedia || truncated || !parent || (f.length < 15 && !lowInformation);
+    const eligible = !protectedContent && (Boolean(lowInformation) || repeatedAccount || (!newReference && (repetitiveQuestion || repetitiveAdvice || repetitiveSummary)));
     const historyAdjustment = repeatedAccount && !protectedContent ? Math.min(100-commentScore, Math.round(h.score * 0.2)) : 0;
     score = commentScore + historyAdjustment;
     if(newReference)reasons.push('包含原帖之外的具体例子；单条文风不足以自动折叠');
     if (historyAdjustment) reasons.push(`本条也符合账号历史中的跨帖接话结构，辅助加 ${historyAdjustment} 分`);
     const decision = !eligible ? (protectedContent ? '保留：本条需要保留或补足上下文' : newReference ? '保留：有具体新例子，缺少跨帖重复证据' : '保留：未满足模板复述或跨帖重复条件') : score < threshold ? '保留：未达到折叠阈值' : '建议折叠：内容条件和分数均达到要求';
-    return { score, commentScore, account: h, historyAdjustment, threshold, decision, fold: settings.mode !== 'off' && eligible && score >= threshold, reasons, ratio, borrowed: borrowed.map(x => x.value.slice(0,100)).slice(0,3), features: f, missingParent: !parent, semantic, eligible, newReference };
+    return { score, commentScore, account: h, historyAdjustment, threshold, decision, fold: settings.mode !== 'off' && eligible && score >= threshold, reasons, ratio, borrowed: borrowed.map(x => x.value.slice(0,100)).slice(0,3), features: f, missingParent: !parent, semantic, eligible, newReference, lowInformation };
   }
   function sanitizeSettings(value) {
     return { mode: ['collapse','mark','off'].includes(value?.mode) ? value.mode : DEFAULTS.mode,
       sensitivity: ['gentle','balanced','strict'].includes(value?.sensitivity) ? value.sensitivity : DEFAULTS.sensitivity,
-      semantic: typeof value?.semantic === 'boolean' ? value.semantic : DEFAULTS.semantic };
+      semantic: typeof value?.semantic === 'boolean' ? value.semantic : DEFAULTS.semantic,
+      lowInformation: typeof value?.lowInformation === 'boolean' ? value.lowInformation : DEFAULTS.lowInformation };
   }
   return { DEFAULTS, normalize, signature, overlap, features, historySignals, analyze, sanitizeSettings };
 });

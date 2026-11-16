@@ -112,10 +112,17 @@ async function run(){
     await until(()=>folded('15103'));
     if(folded('15104')||bar('15104'))throw Error('实际帧率被当成设想过滤');
   });
-  await test('多处复述后收藏学习会折叠，短收藏仍保留',async()=>{
+  await test('多处复述和纯收藏致谢都按新偏好折叠',async()=>{
     timeline.append(article('15105','bookmark_summary','建筑、材质和音乐通过代码生成，不需要另外下载素材。文件保存生成规则，显卡在打开页面时生成画面。固定机位截图，检查透视、遮挡和灯光问题，收藏了慢慢消化。'),article('15106','short_bookmark','收藏了，慢慢看。'));
-    await until(()=>folded('15105'));
-    if(folded('15106')||bar('15106'))throw Error('短收藏回复被误折叠或插入控件');
+    await until(()=>folded('15105')&&folded('15106'));
+  });
+  await test('关闭空泛附和清理可恢复短评，重新开启后再次折叠',async()=>{
+    const checkbox=settings().querySelector('[aria-label="折叠空泛附和"]');
+    checkbox.checked=false;checkbox.dispatchEvent(new Event('change'));
+    await until(()=>!folded('15106')&&!bar('15106'));
+    if(!folded('15105'))throw Error('关闭空泛附和意外停用了模板复述过滤');
+    checkbox.checked=true;checkbox.dispatchEvent(new Event('change'));
+    await until(()=>folded('15106'));
   });
   const summary={passed:results.filter(r=>r.pass).length,total:results.length,results};window.XRF_TEST_RESULTS=summary;status.textContent=`交互检查 ${summary.passed}/${summary.total} 通过。`;runButton.disabled=false;
   const pre=document.createElement('pre');pre.id='test-json';pre.hidden=true;pre.textContent=JSON.stringify(summary);output.append(pre);

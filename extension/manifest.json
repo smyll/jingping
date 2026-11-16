@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "净评 · X 评论折叠",
-  "version": "0.1.3",
-  "description": "在本地识别复述与模板式接话，自动折叠 X 评论。无需账号、API Key 或 Token。",
+  "name": "净推 · X 评论清理",
+  "version": "0.2.0",
+  "description": "在本地折叠空泛附和、重复结论和模板式接话，让 X 评论区更清爽。无需 Token 或 API Key。",
   "permissions": [
     "storage",
     "offscreen"
@@ -31,7 +31,7 @@
     }
   ],
   "action": {
-    "default_title": "净评设置",
+    "default_title": "净推设置",
     "default_popup": "popup.html"
   }
 }
