@@ -124,6 +124,16 @@ async function run(){
     checkbox.checked=true;checkbox.dispatchEvent(new Event('change'));
     await until(()=>folded('15106'));
   });
+  await test('附和前后的称呼与语气词不会让空话漏过',async()=>{
+    for(const [id,text] of [['15107','太强了兄弟'],['15108','这个可以有'],['15109','终于放出来机密了'],['15110','这个可以有，但我试过导出后字幕丢了。']])timeline.append(article(id,'reaction'+id,text));
+    await until(()=>['15107','15108','15109'].every(folded));
+    if(folded('15110')||bar('15110'))throw Error('带具体问题的回复被当成附和');
+  });
+  await test('对原帖实际问题的简短回答保留',async()=>{
+    history.pushState({},'', '/demo/status/16000');timeline.replaceChildren(article('16000','demo','这个版本可以批量处理吗？'),article('16100','answer','可以啊'),article('16101','reaction','这个可以有'));
+    await until(()=>folded('16101'));
+    if(folded('16100')||bar('16100'))throw Error('简短回答被当成无信息附和');
+  });
   const summary={passed:results.filter(r=>r.pass).length,total:results.length,results};window.XRF_TEST_RESULTS=summary;status.textContent=`交互检查 ${summary.passed}/${summary.total} 通过。`;runButton.disabled=false;
   const pre=document.createElement('pre');pre.id='test-json';pre.hidden=true;pre.textContent=JSON.stringify(summary);output.append(pre);
 }

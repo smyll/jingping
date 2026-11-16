@@ -87,13 +87,18 @@
     f.shape = [f.praise ? '接话' : '', f.anecdote ? '自述' : '', f.pivot ? '转折' : '', f.question ? '追问' : '', f.advice ? '建议' : '', f.future ? '试用意向' : '', f.reframe ? '总结' : ''].filter(Boolean).join('→');
     return f;
   }
-  function lowInformationReason(text, f, ratio) {
+  function lowInformationReason(text, f, ratio, parent) {
     if(f.length>100 || f.question || /[?？]|出处|来源|证据|纠正|并未|不是官方|没有开源|并不是|不赞成|不建议|比如|例如|举个例子/.test(text))return '';
     // Specific details and usable observations take priority over generic praise.
     if(/https?:\/\/|`|\d\s*(?:px|fps|ms|[kmgt]i?b|%|秒|元)|报错|没反应|不支持|无法|失败|卡住|离线|断网|配置|参数|命令|函数|接口|字段|点击|关闭|打开|安装|改成|改为|按钮/i.test(text))return '';
     const plain=normalize(text).replace(/[\p{P}\p{S}\s]+/gu,'');
-    const reaction=/^(?:(?:原来如此|谢谢(?:分享|整理|推荐|大佬)?|感谢(?:分享|整理|推荐|大佬)?|多谢|收藏(?:了|起来)?|已收藏|先收藏|学到了|学习了|受教了|涨知识了|支持|赞|太强了|太厉害了|厉害|好厉害|牛|牛逼|牛批|不错|很棒|太棒了|很有用|可以|先抄为敬|抄作业了|mark|thx|thanks|great|nice|哈哈|哈|慢慢看|慢慢消化|回头看)){1,6}$/i;
-    if(plain && f.length<=40 && reaction.test(plain))return '纯附和、致谢或收藏，未补充信息';
+    const reactionBody=plain.replace(/^(?:(?:好家伙|我靠|卧槽|这个|这|那|我真得|我真的|我也|我|哇|兄弟|大佬|老师|真是)){0,3}/,'').replace(/(?:(?:好兄弟|兄弟们|兄弟|大佬|老师|朋友们|朋友|哥|啊|呀|啦|哦|呢|吧|喔)){1,3}$/,'');
+    // A short answer to an actual question can carry information despite its length.
+    if(/[?？]/.test(parent) && /^(?:可以|是的|对|支持|有|没有)$/.test(reactionBody))return '';
+    const reaction=/^(?:(?:原来如此|谢谢(?:分享|整理|推荐|大佬)?|感谢(?:分享|整理|推荐|大佬)?|多谢|收藏(?:了|起来)?|已收藏|先收藏|学到了|学习了|受教了|涨知识了|支持|赞|太强了|太厉害了|厉害|好厉害|牛|牛逼|牛批|不错|很棒|太棒了|很有用|可以(?:有|的|了)?|期待(?:了|一下|一手)?|(?:正好|刚好|恰好)(?:需要|用得上)|先抄为敬|抄作业了|mark|thx|thanks|great|nice|哈哈|哈|慢慢看|慢慢消化|回头看)){1,6}$/i;
+    if(reactionBody && f.length<=40 && reaction.test(reactionBody))return '纯附和、致谢或收藏，未补充信息';
+    const releaseBody=reactionBody.replace(/^(?:终于|总算|可算)/,'');
+    if(f.length<=40 && releaseBody!==reactionBody && /放出|公开|公布|揭晓|解密|开源|发布|等到|盼到|看到|拿到/.test(releaseBody) && /^(?:(?:把|这份|这个|放出来|放出|公开|公布|揭晓|解密|开源|发布|等到|盼到|看到|拿到|机密|秘密|答案|真相|内幕|干货|完整版|教程|文档|规范|了)){1,8}$/.test(releaseBody))return '仅对公开或发布作感叹，未补充信息';
     const praise=/省(?:了|下|不少|很多|点)?.{0,4}(?:劲|事|功夫)|高级(?:感)?|(?:太|真|很)?厉害|(?:太|很|真|够)(?:专业|详细|强|有用|不错)|有参考价值|直接抄作业|断层领先|这个(?:思路|方法).{0,4}(?:不错|挺好|真好)/;
     const abstractAdvice=/(?:关键|真正难|更难|难点).{0,18}(?:团队|习惯|落地)|(?:配合|结合|考虑).{0,14}(?:具体内容|实际(?:情况|场景|需求)|可用性)/;
     if((ratio>=0.22 || (ratio>0.08 && /^(?:厉害|太强了)[，,\s]*(?:没想到|原来)/.test(text))) && praise.test(text))return '围绕原帖作笼统评价，未补充具体细节';
@@ -141,7 +146,7 @@
     const hasNewConcrete = newMeasurement || spans.some(x => x.ratio < 0.35 && PATTERNS.concrete.test(x.value));
     const substantive = (f.opposition && ratio < 0.8) || hasNewConcrete;
     const newReference = spans.some(x=>x.ratio<0.25 && /《[^》]+》|\b(?:19|20)\d{2}\s*年|\.[a-z][a-z0-9_-]{2,}/i.test(x.value));
-    const lowInformation = settings.lowInformation!==false && parent && !substantive && !newReference && !hasMedia && !truncated ? lowInformationReason(text,f,ratio) : '';
+    const lowInformation = settings.lowInformation!==false && parent && !substantive && !newReference && !hasMedia && !truncated ? lowInformationReason(text,f,ratio,parent) : '';
     const linkedSpans = spans.filter(x=>x.ratio>=0.3 && x.value.length>=8).length;
     const summaryReuse = ratio>=0.6 || (ratio>=0.5 && semantic?.similarity>=0.65);
     const shortJoke = f.length<70 && /哈哈|笑死|分明是|😂|🤣/.test(text);
