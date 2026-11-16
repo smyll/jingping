@@ -10,7 +10,7 @@ A free, local browser extension. No tokens, API keys or server. Ordinary replies
 
 ## Install
 
-1. Download **jingping-v0.1.2-edge-chrome.zip** from Releases and extract it.
+1. Download **jingping-v0.1.3-edge-chrome.zip** from Releases and extract it.
 2. Open `edge://extensions` or `chrome://extensions` and enable Developer mode.
 3. Click **Load unpacked** and select the extracted **extension** folder.
 4. Refresh X and open a post's replies. Use the extension popup to change sensitivity or pause filtering.
@@ -22,6 +22,8 @@ Tested on desktop Edge with real X pages. Chrome uses the same package but has n
 The extension combines phrase overlap, a bundled Chinese embedding model and repeated reply structures observed while you browse. It favors keeping short questions, jokes, concrete new examples, measurements, troubleshooting details and replies with media or incomplete text.
 
 Reported measurements can include elapsed time, memory and cost. Hypothetical targets and numbers quoted from the source do not receive measurement protection just because they include a unit.
+
+Multi-point restatements followed by a generic intention to save or study the post can also fold. A short bookmark acknowledgment on its own stays visible.
 
 This is a personal filter, **not an AI-authorship detector**. It does not score people from their names, blue checks or AI branding. Current tuning targets Chinese replies; English quality has not been evaluated separately.
 
