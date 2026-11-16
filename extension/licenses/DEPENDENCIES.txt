@@ -1,0 +1,8 @@
+onnxruntime-common 1.21.0: MIT
+{"url":"https://github.com/Microsoft/onnxruntime.git","type":"git"}
+
+onnxruntime-web 1.22.0-dev.20250409-89f8206ba4: MIT
+{"url":"https://github.com/Microsoft/onnxruntime.git","type":"git"}
+
+@huggingface/transformers 3.8.1: Apache-2.0
+{"type":"git","url":"git+https://github.com/huggingface/transformers.js.git"}

@@ -1,0 +1,7 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>净评设置</title><link rel="stylesheet" href="popup.css"></head><body>
+<main><h1>净评</h1><p>把模板式接话折叠起来。</p>
+<label>处理方式<select id="mode"><option value="collapse">自动折叠</option><option value="mark">仅后台评分</option><option value="off">暂停过滤</option></select></label>
+<label>过滤力度<select id="sensitivity"><option value="gentle">温和</option><option value="balanced">标准</option><option value="strict">较强</option></select></label>
+<label>本地中文语义辅助<input id="semantic" type="checkbox"></label>
+<p id="status" role="status">正在读取设置</p><p class="small">进入 X 帖子详情页后生效。正常评论保持原样，需要折叠时只显示细栏和“展开”。</p><p class="small">中文模型随扩展打包，完全本地运行。无需 API Key，不上传评论。</p>
+</main><script src="core.js"></script><script src="popup.js"></script></body></html>

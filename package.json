@@ -1,0 +1,23 @@
+{
+  "name": "jingping",
+  "version": "0.1.1",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.cjs",
+    "check": "node tools/check.cjs",
+    "serve": "node tools/serve.cjs",
+    "package": "node tools/package.cjs"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "3.8.1"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  },
+  "description": "Local, free X reply folding. No API keys.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/smyll/jingping.git"
+  }
+}

@@ -1,0 +1,5 @@
+article[data-xrf-managed] { flex-wrap: wrap !important; }
+article[data-xrf-managed] > :not([data-xrf-owned]) { flex-basis: 100% !important; min-width: 0; }
+article[data-xrf-folded] > :not([data-xrf-owned]) { display: none !important; }
+article[data-xrf-folded] { min-height: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; }
+[data-xrf-owned] { display: block; flex: 1 1 100%; min-width: 0; width: 100%; }
