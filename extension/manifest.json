@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "净推 · X 评论清理",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "在本地折叠空泛附和、重复结论和模板式接话，让 X 评论区更清爽。无需 Token 或 API Key。",
   "permissions": [
     "storage",

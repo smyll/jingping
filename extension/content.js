@@ -24,7 +24,7 @@
   if (!storage) return;
   const keys = { settings: 'xrf.settings', decisions: 'xrf.decisions', authors: 'xrf.authors', history: 'xrf.history' };
   let settings = { ...core.DEFAULTS }, decisions = {}, authors = {}, history = {};
-  let ready = false, error = '', routeKey = '', rootText = '', rootHandle = '', excluded = new Set();
+  let ready = false, error = '', routeKey = '', rootText = '', excluded = new Set();
   let timer, historyTimer, historyBusy = false, foldedCount = 0, evaluatedCount = 0;
   const pendingHistory = new Map(), elements = new Map(), expanded = new Set();
   const semanticCache = new Map(), semanticQueue = new Map();
@@ -208,7 +208,7 @@
     const id=route?.[2] || '';
     if(id!==routeKey) {
       for(const el of elements.keys())restore(el);
-      routeKey=id;rootText='';rootHandle='';excluded=new Set();expanded.clear();semanticQueue.clear();
+      routeKey=id;rootText='';excluded=new Set();expanded.clear();semanticQueue.clear();
     }
     foldedCount=0;evaluatedCount=0;
     for(const el of elements.keys())if(!el.isConnected)elements.delete(el);
@@ -218,7 +218,6 @@
     if(rootIndex>=0) {
       const main=rows[rootIndex].item;
       if(main.text)rootText=main.text;
-      rootHandle=main.handle;
       for(let i=0;i<=rootIndex;i++){excluded.add(rows[i].item.id);restore(rows[i].el);}
     }
     const own=ownHandle();
@@ -230,7 +229,7 @@
         if(item.handle!==profile)profileParent=item.id;
         else record(item,profileParent);
       }
-      const isReply=id&&rootText&&!excluded.has(item.id)&&BigInt(item.id)>BigInt(id)&&item.handle!==own&&item.handle!==rootHandle;
+      const isReply=id&&rootText&&!excluded.has(item.id)&&BigInt(item.id)>BigInt(id)&&item.handle!==own;
       const afterBoundary=boundary&&Boolean(boundary.compareDocumentPosition(el)&Node.DOCUMENT_POSITION_FOLLOWING);
       if(!isReply||afterBoundary||settings.mode==='off'){restore(el);continue;}
       record(item,id);evaluatedCount++;

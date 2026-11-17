@@ -12,7 +12,7 @@ Previously named Jingping. Version 0.2.0 adopts Jingtui while retaining the exis
 
 ## Install
 
-1. Download **jingtui-v0.2.1-edge-chrome.zip** from Releases and extract it.
+1. Download **jingtui-v0.2.2-edge-chrome.zip** from Releases and extract it.
 2. Open `edge://extensions` or `chrome://extensions` and enable Developer mode.
 3. Click **Load unpacked** and select the extracted **extension** folder.
 4. Refresh X and open a post's replies. Use the extension popup to change sensitivity or pause filtering.
@@ -28,6 +28,8 @@ Reported measurements can include elapsed time, memory and cost. Hypothetical ta
 Multi-point restatements followed by a generic intention to save or study the post can also fold. Empty-reply cleanup is enabled by default: it can fold standalone thanks, bookmarks, generic praise and abstract advice. Turn off **折叠空泛附和** in the popup to retain those short reactions while keeping the template filter active.
 
 Short reactions are also checked with common forms of address, interjections and trailing particles. Generic excitement about a release can fold, while short answers to an actual question in the original post are preserved.
+
+Repeated figures followed by generic conclusions are checked with numeric notation normalization and local semantic support. The original author's follow-up replies are evaluated by the same content rules. The main post and your own replies remain visible.
 
 This is a personal filter, **not an AI-authorship detector**. It does not score people from their names, blue checks or AI branding. Current tuning targets Chinese replies; English quality has not been evaluated separately.
 

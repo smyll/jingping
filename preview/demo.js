@@ -134,6 +134,21 @@ async function run(){
     await until(()=>folded('16101'));
     if(folded('16100')||bar('16100'))throw Error('简短回答被当成无信息附和');
   });
+  await test('原帖作者的空泛回复也折叠，主帖和自己的回复保留',async()=>{
+    history.pushState({},'', '/writer/status/17000');timeline.replaceChildren(article('17000','writer','一个月合入2,400个改动，回滚率0.8%。工程师把规则固化为静态检查，自动化测试提供运行结果，人负责最后的评审。'),article('17100','writer','自动化测试要做到位。'),article('17101','self','自动化测试要做到位。'),article('17102','writer','我实测回滚处理耗时12秒。'));
+    await until(()=>folded('17100'));
+    for(const id of ['17000','17101','17102'])if(folded(id)||bar(id))throw Error('主帖、自己回复或作者具体结果被折叠');
+  });
+  await test('实际本地模型识别改写数字的总结，保留具体反馈',async()=>{
+    const text='一个月合入2400个改动，回滚率0.8%，数字让人印象深刻。效率提升之后，人的价值转向判断哪些改动值得上线，最后还是得靠测试和评审。';
+    timeline.append(article('17103','summary',text),article('17104','detail',text+' 例如空数组输入会返回 undefined，调用方无法区分失败。'));
+    await until(()=>folded('17103'));
+    if(folded('17104')||bar('17104'))throw Error('具体排错信息被当成数字复述');
+  });
+  await test('作者回复展开恢复原文，不跳转也不残留工具栏',async()=>{
+    press('17100','展开');await until(()=>!folded('17100'));
+    if(bar('17100')||get('17100').dataset.navigationLeak||location.pathname!=='/writer/status/17000')throw Error('作者回复展开失败');
+  });
   const summary={passed:results.filter(r=>r.pass).length,total:results.length,results};window.XRF_TEST_RESULTS=summary;status.textContent=`交互检查 ${summary.passed}/${summary.total} 通过。`;runButton.disabled=false;
   const pre=document.createElement('pre');pre.id='test-json';pre.hidden=true;pre.textContent=JSON.stringify(summary);output.append(pre);
 }

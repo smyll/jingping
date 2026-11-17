@@ -18,8 +18,11 @@
     future: /(?:下次|回头|有空|改天|之后|准备|打算).{0,12}(?:试试|试一|试下|用上|跑一|体验|做一)|收藏.{0,10}(?:慢慢|回头|之后|以后|再).{0,4}(?:看|研究|学习|消化)/,
     reframe: /背后(?:其实|本质)|这(?:也)?意味着|真正变的是|(?:门槛|成本|效率|价值).{0,16}(?:变成|降低|打下|从|提升)|(?:本质|核心|关键)(?:其实)?(?:是|在于)/,
     opposition: /不同意|不认同|不成立|说错|有误|反例|并不意味着|不能证明|逻辑跳跃|并不是|不等于|根本不|not true|incorrect|counterexample/i,
-    concrete: /TypeError|ReferenceError|报错|错误码|复现|堆栈|issue\s*#?\d|https?:\/\/\S+/i
+    concrete: /TypeError|ReferenceError|报错|错误码|复现|堆栈|issue\s*#?\d|https?:\/\/\S+|(?:输入|返回|输出).{0,20}\b(?:undefined|null|NaN|true|false)\b/i
   };
+  function ungroupNumbers(value) {
+    return String(value || '').normalize('NFKC').replace(/\b\d{1,3}(?:,\d{3})+(?:\.\d+)?\b/g, n=>n.replaceAll(',',''));
+  }
   function normalize(value) {
     return String(value || '').normalize('NFKC').toLowerCase().replace(/https?:\/\/\S+/g, ' ').replace(/@[\w_]+/g, ' ').replace(/\s+/g, ' ').trim();
   }
@@ -34,10 +37,10 @@
     const cacheKey=String(text||'');
     if(unitCache.has(cacheKey))return unitCache.get(cacheKey);
     const result = new Map();
-    if (segmenter) for (const part of segmenter.segment(normalize(text))) {
+    if (segmenter) for (const part of segmenter.segment(normalize(ungroupNumbers(text)))) {
       if (part.isWordLike && part.segment.length >= 2 && !STOP.has(part.segment)) result.set(part.segment, 3);
     }
-    for (const run of normalize(text).match(/[\p{Script=Han}]+|[a-z][a-z0-9.+-]*|\d+(?:\.\d+)?/gu) || []) {
+    for (const run of normalize(ungroupNumbers(text)).match(/[\p{Script=Han}]+|[a-z][a-z0-9.+-]*|\d+(?:\.\d+)?/gu) || []) {
       if (/\p{Script=Han}/u.test(run)) {
         for (let size = 2; size <= 3; size++) for (let i = 0; i <= run.length - size; i++) {
           const key = run.slice(i, i + size);
@@ -50,7 +53,7 @@
     return result;
   }
   function clauses(text) {
-    return String(text || '').split(/[。！？!?\n；;，,：:]/).map(s => s.trim()).filter(s => s.length >= 6);
+    return ungroupNumbers(text).split(/[。！？!?\n；;，,：:]/).map(s => s.trim()).filter(s => s.length >= 6);
   }
   function overlap(parent, reply) {
     const a = units(parent), b = units(reply);
@@ -87,7 +90,20 @@
     f.shape = [f.praise ? '接话' : '', f.anecdote ? '自述' : '', f.pivot ? '转折' : '', f.question ? '追问' : '', f.advice ? '建议' : '', f.future ? '试用意向' : '', f.reframe ? '总结' : ''].filter(Boolean).join('→');
     return f;
   }
-  function lowInformationReason(text, f, ratio, parent) {
+  function recycledNumbers(parent, text) {
+    const numbers=value=>new Set([...normalize(ungroupNumbers(value)).matchAll(/\d+(?:\.\d+)?\s*([百千万亿]?)/g)].map(m=>{
+      const n=Number.parseFloat(m[0])*({'百':100,'千':1000,'万':10000,'亿':100000000}[m[1]]||1);
+      // Small integers often belong to section numbering, not quoted results.
+      return n>=10 || (n>0 && n<1) ? String(n) : null;
+    }).filter(Boolean));
+    const known=numbers(parent);
+    return [...numbers(text)].filter(n=>known.has(n)).length;
+  }
+  function lowInformationReason(text, f, ratio, parent, semantic) {
+    const specific=/比如|例如|举个例子|`|出处|来源|证据|纠正|我(?:们)?[^。！？]{0,16}(?:试过|用过|遇到|做过|改过|发现|实测)|输入[^。！？]{0,20}输出/;
+    // Reused figures are anchors, not evidence contributed by the reply. Require
+    // semantic agreement as well, and keep questions and concrete additions.
+    if(f.length>=40 && f.length<=220 && !f.question && !/[?？]/.test(text) && !specific.test(text) && ratio>=0.2 && semantic?.similarity>=0.62 && recycledNumbers(parent,text)>=2)return '重述原帖多组数字后泛泛总结，未补充具体信息';
     if(f.length>100 || f.question || /[?？]|出处|来源|证据|纠正|并未|不是官方|没有开源|并不是|不赞成|不建议|比如|例如|举个例子/.test(text))return '';
     // Specific details and usable observations take priority over generic praise.
     if(/https?:\/\/|`|\d\s*(?:px|fps|ms|[kmgt]i?b|%|秒|元)|报错|没反应|不支持|无法|失败|卡住|离线|断网|配置|参数|命令|函数|接口|字段|点击|关闭|打开|安装|改成|改为|按钮/i.test(text))return '';
@@ -99,10 +115,15 @@
     if(reactionBody && f.length<=40 && reaction.test(reactionBody))return '纯附和、致谢或收藏，未补充信息';
     const releaseBody=reactionBody.replace(/^(?:终于|总算|可算)/,'');
     if(f.length<=40 && releaseBody!==reactionBody && /放出|公开|公布|揭晓|解密|开源|发布|等到|盼到|看到|拿到/.test(releaseBody) && /^(?:(?:把|这份|这个|放出来|放出|公开|公布|揭晓|解密|开源|发布|等到|盼到|看到|拿到|机密|秘密|答案|真相|内幕|干货|完整版|教程|文档|规范|了)){1,8}$/.test(releaseBody))return '仅对公开或发布作感叹，未补充信息';
-    const praise=/省(?:了|下|不少|很多|点)?.{0,4}(?:劲|事|功夫)|高级(?:感)?|(?:太|真|很)?厉害|(?:太|很|真|够)(?:专业|详细|强|有用|不错)|有参考价值|直接抄作业|断层领先|这个(?:思路|方法).{0,4}(?:不错|挺好|真好)/;
+    const praise=/省(?:了|下|不少|很多|点)?.{0,4}(?:劲|事|功夫)|高级(?:感)?|(?:太|真|很)?厉害|(?:太|很|真|够)(?:专业|详细|强|有用|不错)|有参考价值|直接抄作业|断层领先|这个(?:思路|方法).{0,4}(?:不错|挺好|真好)|(?:得|该|该有|得有)多(?:顺|强|稳|厉害)/;
     const abstractAdvice=/(?:关键|真正难|更难|难点).{0,18}(?:团队|习惯|落地)|(?:配合|结合|考虑).{0,14}(?:具体内容|实际(?:情况|场景|需求)|可用性)/;
     if((ratio>=0.22 || (ratio>0.08 && /^(?:厉害|太强了)[，,\s]*(?:没想到|原来)/.test(text))) && praise.test(text))return '围绕原帖作笼统评价，未补充具体细节';
     if(ratio>=0.1 && abstractAdvice.test(text))return '泛化的原则或建议，未说明具体做法';
+    if(f.length<=45 && !specific.test(text) && ratio>=0.1){
+      const affirmation=/^(?:是的|没错|确实如此|说到点子上了|你说到点子上了)[，,。\s]|^(?:也是|这也是)经过.{0,18}(?:实践|优化).{0,6}结果/;
+      const genericConclusion=/(?:要|得|必须)(?:做到位|落实好|重视起来)[。！!]?\s*$|(?:才是|就是|是)(?:真正的)?(?:核心|关键|生产力工具)[啊呀。！!\s]*$/;
+      if((affirmation.test(text) && semantic?.similarity>=0.58) || genericConclusion.test(text))return '附和或重申笼统结论，未说明具体做法';
+    }
     if(f.length>=12 && f.length<=65 && ratio>=0.88)return '短评论几乎完全重复原帖';
     return '';
   }
@@ -146,7 +167,7 @@
     const hasNewConcrete = newMeasurement || spans.some(x => x.ratio < 0.35 && PATTERNS.concrete.test(x.value));
     const substantive = (f.opposition && ratio < 0.8) || hasNewConcrete;
     const newReference = spans.some(x=>x.ratio<0.25 && /《[^》]+》|\b(?:19|20)\d{2}\s*年|\.[a-z][a-z0-9_-]{2,}/i.test(x.value));
-    const lowInformation = settings.lowInformation!==false && parent && !substantive && !newReference && !hasMedia && !truncated ? lowInformationReason(text,f,ratio,parent) : '';
+    const lowInformation = settings.lowInformation!==false && parent && !substantive && !newReference && !hasMedia && !truncated ? lowInformationReason(text,f,ratio,parent,semantic) : '';
     const linkedSpans = spans.filter(x=>x.ratio>=0.3 && x.value.length>=8).length;
     const summaryReuse = ratio>=0.6 || (ratio>=0.5 && semantic?.similarity>=0.65);
     const shortJoke = f.length<70 && /哈哈|笑死|分明是|😂|🤣/.test(text);
